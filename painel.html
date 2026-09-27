@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel - Topografia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 h-screen flex overflow-hidden">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-white flex flex-col">
+        <div class="p-6 text-xl font-bold border-b border-gray-800">Topografia</div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="mudarAba('dashboard')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Dashboard</button>
+            <button onclick="mudarAba('clientes')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Clientes</button>
+            <button onclick="mudarAba('servicos')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Serviços</button>
+            <button onclick="mudarAba('pagamentos')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Pendências</button>
+        </nav>
+        <button onclick="fazerLogout()" class="p-4 bg-red-600 hover:bg-red-700 text-center font-bold">Sair</button>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        
+        <!-- Dashboard -->
+        <section id="dashboard" class="aba">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Visão Geral</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded shadow">
+                    <h3 class="text-gray-500 text-sm">Serviços Ativos</h3>
+                    <p class="text-3xl font-bold" id="dashTotalServicos">0</p>
+                </div>
+                <div class="bg-white p-6 rounded shadow border-l-4 border-red-500">
+                    <h3 class="text-gray-500 text-sm">Valores a Receber</h3>
+                    <p class="text-3xl font-bold text-red-600" id="dashAReceber">R$ 0,00</p>
+                </div>
+                <div class="bg-white p-6 rounded shadow border-l-4 border-green-500">
+                    <h3 class="text-gray-500 text-sm">Total Recebido</h3>
+                    <p class="text-3xl font-bold text-green-600" id="dashRecebido">R$ 0,00</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Clientes -->
+        <section id="clientes" class="aba hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Clientes</h1>
+                <button class="bg-blue-600 text-white px-4 py-2 rounded">+ Novo Cliente</button>
+            </div>
+            <div class="bg-white rounded shadow p-4">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b">
+                            <th class="p-3">Nome</th>
+                            <th class="p-3">Telefone</th>
+                            <th class="p-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaClientes">
+                        <!-- Clientes serão injetados aqui via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Serviços e Pagamentos seguirão a mesma estrutura acima -->
+        <section id="servicos" class="aba hidden"><h1 class="text-3xl font-bold">Serviços</h1></section>
+        <section id="pagamentos" class="aba hidden"><h1 class="text-3xl font-bold">Pendências</h1></section>
+
+    </main>
+
+    <script src="config.js"></script>
+    <script>
+        // Proteção da rota
+        supabase.auth.getSession().then(({ data }) => {
+            if (!data.session) window.location.href = 'login.html';
+        });
+
+        // Lógica simples para alternar as telas
+        function mudarAba(abaId) {
+            document.querySelectorAll('.aba').forEach(el => el.classList.add('hidden'));
+            document.getElementById(abaId).classList.remove('hidden');
+            if (abaId === 'clientes') carregarClientes();
+        }
+
+        // Exemplo de como puxar dados do Supabase usando JS puro
+        async function carregarClientes() {
+            const { data: clientes, error } = await supabase.from('clients').select('*');
+            const tbody = document.getElementById('listaClientes');
+            tbody.innerHTML = '';
+            
+            if (clientes) {
+                clientes.forEach(cliente => {
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3">${cliente.nome}</td>
+                            <td class="p-3">${cliente.telefone || '-'}</td>
+                            <td class="p-3 text-blue-600 cursor-pointer hover:underline">Editar</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+    </script>
+</body>
+</html>

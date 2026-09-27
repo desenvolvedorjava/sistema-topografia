@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Topografia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Sistema Topografia</h2>
+        
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">E-mail</label>
+                <input type="email" id="email" required class="mt-1 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Senha</label>
+                <input type="password" id="senha" required class="mt-1 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <p id="msgErro" class="text-red-500 text-sm hidden">Erro ao fazer login.</p>
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 font-bold transition">Entrar</button>
+        </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // Verifica se já está logado
+        supabase.auth.getSession().then(({ data }) => {
+            if (data.session) window.location.href = 'painel.html';
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('senha').value;
+            const msgErro = document.getElementById('msgErro');
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                msgErro.textContent = "Credenciais inválidas.";
+                msgErro.classList.remove('hidden');
+            } else {
+                window.location.href = 'painel.html';
+            }
+        });
+    </script>
+</body>
+</html>

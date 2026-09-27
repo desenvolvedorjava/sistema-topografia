@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Serviço - Topografia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="flex items-center mb-6">
+            <button onclick="window.history.back()" class="text-blue-600 hover:underline mr-4">← Voltar</button>
+            <h1 class="text-2xl font-bold text-gray-800">Histórico do Serviço</h1>
+        </div>
+
+        <div class="bg-white shadow rounded p-6">
+            <ul id="listaHistorico" class="space-y-4">
+                <li class="text-gray-500">Carregando histórico...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        supabase.auth.getSession().then(({ data }) => {
+            if (!data.session) window.location.href = 'login.html';
+        });
+
+        async function carregarHistorico() {
+            // Pega o ID da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const servicoId = urlParams.get('id');
+
+            if (!servicoId) {
+                document.getElementById('listaHistorico').innerHTML = "<li class='text-red-500'>ID do serviço não informado.</li>";
+                return;
+            }
+
+            const { data: historico, error } = await supabase
+                .from('service_history')
+                .select('*')
+                .eq('service_id', servicoId)
+                .order('created_at', { ascending: false });
+
+            const ul = document.getElementById('listaHistorico');
+            ul.innerHTML = '';
+
+            if (historico && historico.length > 0) {
+                historico.forEach(item => {
+                    const data = new Date(item.created_at).toLocaleString('pt-BR');
+                    ul.innerHTML += `
+                        <li class="border-l-4 border-blue-500 pl-4 py-2">
+                            <p class="font-bold text-gray-700">${item.acao}</p>
+                            <p class="text-sm text-gray-600">${item.descricao || ''}</p>
+                            <p class="text-xs text-gray-400 mt-1">${data}</p>
+                        </li>
+                    `;
+                });
+            } else {
+                ul.innerHTML = "<li class='text-gray-500'>Nenhum registro encontrado.</li>";
+            }
+        }
+
+        carregarHistorico();
+    </script>
+</body>
+</html>
