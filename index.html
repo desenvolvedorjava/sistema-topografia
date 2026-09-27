@@ -25,28 +25,45 @@
         </form>
     </div>
 
-    <script src="config.js"></script>
+<script src="config.js"></script>
     <script>
-        // Verifica se já está logado
-        supabase.auth.getSession().then(({ data }) => {
-            if (data.session) window.location.href = 'painel.html';
-        });
-
+        // 1. PRIMEIRO: Prepara o botão para bloquear o recarregamento (evita o "?")
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+            e.preventDefault(); 
+            
+            const msgErro = document.getElementById('msgErro');
             const email = document.getElementById('email').value;
             const password = document.getElementById('senha').value;
-            const msgErro = document.getElementById('msgErro');
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            msgErro.classList.remove('hidden');
+            msgErro.style.color = "blue"; 
+            msgErro.textContent = "Conectando ao banco de dados...";
 
-            if (error) {
-                msgErro.textContent = "Credenciais inválidas.";
-                msgErro.classList.remove('hidden');
-            } else {
-                window.location.href = 'painel.html';
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+                if (error) {
+                    msgErro.style.color = "red";
+                    msgErro.textContent = "Aviso: " + error.message; // Exibe o erro real do Supabase
+                } else {
+                    msgErro.style.color = "green";
+                    msgErro.textContent = "Sucesso! Entrando no painel...";
+                    window.location.href = 'painel.html';
+                }
+            } catch (err) {
+                msgErro.style.color = "red";
+                msgErro.textContent = "Erro interno: o arquivo config.js não carregou.";
             }
         });
+
+        // 2. SÓ DEPOIS: Verifica se já existe uma sessão ativa
+        try {
+            supabase.auth.getSession().then(({ data }) => {
+                if (data && data.session) window.location.href = 'painel.html';
+            });
+        } catch(err) {
+            console.warn("Aguardando carregamento da conexão...");
+        }
     </script>
 </body>
 </html>
