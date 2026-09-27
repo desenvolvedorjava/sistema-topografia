@@ -7,5 +7,5 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // Função global de logout
 async function fazerLogout() {
   await supabase.auth.signOut();
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
