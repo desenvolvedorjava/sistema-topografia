@@ -6,102 +6,498 @@
     <title>Painel - Topografia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 h-screen flex overflow-hidden">
     
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 text-white flex flex-col">
-        <div class="p-6 text-xl font-bold border-b border-gray-800">Topografia</div>
-        <nav class="flex-1 p-4 space-y-2">
-            <button onclick="mudarAba('dashboard')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Dashboard</button>
-            <button onclick="mudarAba('clientes')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Clientes</button>
-            <button onclick="mudarAba('servicos')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Serviços</button>
-            <button onclick="mudarAba('pagamentos')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Pendências</button>
+    <aside class="w-64 bg-gray-900 text-white flex flex-col transition-all duration-300">
+        <div class="p-6 text-2xl font-bold border-b border-gray-800 tracking-wider">Topografia</div>
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <button onclick="mudarAba('dashboard')" class="nav-btn w-full text-left p-3 hover:bg-gray-800 rounded transition flex items-center gap-3 bg-gray-800" id="btn-dashboard"><i class="fas fa-chart-pie w-5"></i> Dashboard</button>
+            <button onclick="mudarAba('clientes')" class="nav-btn w-full text-left p-3 hover:bg-gray-800 rounded transition flex items-center gap-3" id="btn-clientes"><i class="fas fa-users w-5"></i> Clientes</button>
+            <button onclick="mudarAba('servicos')" class="nav-btn w-full text-left p-3 hover:bg-gray-800 rounded transition flex items-center gap-3" id="btn-servicos"><i class="fas fa-map-marked-alt w-5"></i> Serviços</button>
+            <button onclick="mudarAba('pendencias')" class="nav-btn w-full text-left p-3 hover:bg-gray-800 rounded transition flex items-center gap-3" id="btn-pendencias"><i class="fas fa-file-invoice-dollar w-5"></i> Pendências</button>
         </nav>
-        <button onclick="fazerLogout()" class="p-4 bg-red-600 hover:bg-red-700 text-center font-bold">Sair</button>
+        <button onclick="fazerLogout()" class="p-4 bg-red-600 hover:bg-red-700 text-center font-bold transition flex justify-center items-center gap-2"><i class="fas fa-sign-out-alt"></i> Sair</button>
     </aside>
 
     <!-- Conteúdo Principal -->
-    <main class="flex-1 p-8 overflow-y-auto">
-        
-        <!-- Dashboard -->
-        <section id="dashboard" class="aba">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Visão Geral</h1>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded shadow">
-                    <h3 class="text-gray-500 text-sm">Serviços Ativos</h3>
-                    <p class="text-3xl font-bold" id="dashTotalServicos">0</p>
+    <main class="flex-1 overflow-y-auto relative">
+        <div class="p-8">
+            
+            <!-- DASHBOARD -->
+            <section id="dashboard" class="aba">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Visão Geral</h1>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
+                        <h3 class="text-gray-500 text-sm font-semibold uppercase">Serviços Ativos</h3>
+                        <p class="text-4xl font-bold text-gray-800 mt-2" id="dashTotalServicos">...</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-red-500">
+                        <h3 class="text-gray-500 text-sm font-semibold uppercase">Valores a Receber</h3>
+                        <p class="text-3xl font-bold text-red-600 mt-2" id="dashAReceber">...</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
+                        <h3 class="text-gray-500 text-sm font-semibold uppercase">Total Recebido</h3>
+                        <p class="text-3xl font-bold text-green-600 mt-2" id="dashRecebido">...</p>
+                    </div>
                 </div>
-                <div class="bg-white p-6 rounded shadow border-l-4 border-red-500">
-                    <h3 class="text-gray-500 text-sm">Valores a Receber</h3>
-                    <p class="text-3xl font-bold text-red-600" id="dashAReceber">R$ 0,00</p>
+            </section>
+
+            <!-- CLIENTES -->
+            <section id="clientes" class="aba hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Clientes</h1>
+                    <button onclick="abrirModalCliente()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded shadow transition"><i class="fas fa-plus mr-2"></i> Novo Cliente</button>
                 </div>
-                <div class="bg-white p-6 rounded shadow border-l-4 border-green-500">
-                    <h3 class="text-gray-500 text-sm">Total Recebido</h3>
-                    <p class="text-3xl font-bold text-green-600" id="dashRecebido">R$ 0,00</p>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
+                                <th class="p-4 font-semibold">Nome</th>
+                                <th class="p-4 font-semibold">Telefone</th>
+                                <th class="p-4 font-semibold">CPF/CNPJ</th>
+                                <th class="p-4 font-semibold text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaClientes" class="divide-y divide-gray-200">
+                            <tr><td colspan="4" class="p-4 text-center text-gray-500">Carregando...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Clientes -->
-        <section id="clientes" class="aba hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Clientes</h1>
-                <button class="bg-blue-600 text-white px-4 py-2 rounded">+ Novo Cliente</button>
-            </div>
-            <div class="bg-white rounded shadow p-4">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 border-b">
-                            <th class="p-3">Nome</th>
-                            <th class="p-3">Telefone</th>
-                            <th class="p-3">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaClientes">
-                        <!-- Clientes serão injetados aqui via JS -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <!-- SERVIÇOS -->
+            <section id="servicos" class="aba hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Serviços</h1>
+                    <button onclick="abrirModalServico()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded shadow transition"><i class="fas fa-plus mr-2"></i> Novo Serviço</button>
+                </div>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
+                                <th class="p-4 font-semibold">Cliente / Descrição</th>
+                                <th class="p-4 font-semibold">Status</th>
+                                <th class="p-4 font-semibold">Valor Total</th>
+                                <th class="p-4 font-semibold">Pagamento</th>
+                                <th class="p-4 font-semibold text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaServicos" class="divide-y divide-gray-200">
+                            <tr><td colspan="5" class="p-4 text-center text-gray-500">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-        <!-- Serviços e Pagamentos seguirão a mesma estrutura acima -->
-        <section id="servicos" class="aba hidden"><h1 class="text-3xl font-bold">Serviços</h1></section>
-        <section id="pagamentos" class="aba hidden"><h1 class="text-3xl font-bold">Pendências</h1></section>
+            <!-- PENDÊNCIAS -->
+            <section id="pendencias" class="aba hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Serviços com Pagamento Pendente</h1>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
+                                <th class="p-4 font-semibold">Cliente / Descrição</th>
+                                <th class="p-4 font-semibold">Valor Total</th>
+                                <th class="p-4 font-semibold">Status Pagamento</th>
+                                <th class="p-4 font-semibold text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaPendencias" class="divide-y divide-gray-200">
+                            <tr><td colspan="4" class="p-4 text-center text-gray-500">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
+        </div>
     </main>
+
+    <!-- ================= MODAIS ================= -->
+
+    <!-- Modal Cliente -->
+    <div id="modalCliente" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold" id="tituloModalCliente">Novo Cliente</h2>
+                <button onclick="fecharModal('modalCliente')" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="formCliente" class="p-4 space-y-4">
+                <input type="hidden" id="clienteId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nome Completo *</label>
+                    <input type="text" id="cliNome" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Telefone</label>
+                        <input type="text" id="cliTelefone" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
+                        <input type="text" id="cliCpf" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Observações</label>
+                    <textarea id="cliObs" rows="3" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button type="button" onclick="fecharModal('modalCliente')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Serviço -->
+    <div id="modalServico" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold" id="tituloModalServico">Novo Serviço</h2>
+                <button onclick="fecharModal('modalServico')" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="formServico" class="p-4 space-y-4">
+                <input type="hidden" id="servicoId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Cliente *</label>
+                        <select id="srvCliente" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Descrição do Serviço *</label>
+                        <input type="text" id="srvDescricao" required placeholder="Ex: Levantamento topográfico lote 10" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Valor Total (R$) *</label>
+                        <input type="number" step="0.01" id="srvValor" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status do Serviço</label>
+                        <select id="srvStatus" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                            <option value="SOLICITADO">Solicitado</option>
+                            <option value="EM_ANDAMENTO">Em Andamento</option>
+                            <option value="ENTREGUE">Entregue</option>
+                            <option value="CANCELADO">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button type="button" onclick="fecharModal('modalServico')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar Serviço</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento -->
+    <div id="modalPagamento" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold">Registrar Pagamento</h2>
+                <button onclick="fecharModal('modalPagamento')" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="formPagamento" class="p-4 space-y-4">
+                <input type="hidden" id="pagServicoId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Valor Recebido (R$) *</label>
+                    <input type="number" step="0.01" id="pagValor" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Data do Pagamento *</label>
+                    <input type="date" id="pagData" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Forma de Pagamento</label>
+                    <select id="pagForma" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                        <option value="PIX">PIX</option>
+                        <option value="DINHEIRO">Dinheiro</option>
+                        <option value="TRANSFERENCIA">Transferência</option>
+                        <option value="OUTRO">Outro</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button type="button" onclick="fecharModal('modalPagamento')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirmar Recebimento</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="config.js"></script>
     <script>
-        // Proteção da rota
-        supabase.auth.getSession().then(({ data }) => {
+        const sb = window.supabase;
+        let clientesCache = [];
+
+        // Verifica segurança ao carregar
+        sb.auth.getSession().then(({ data }) => {
             if (!data.session) window.location.href = 'index.html';
+            else carregarDashboard(); // Carrega dados ao iniciar
         });
 
-        // Lógica simples para alternar as telas
+        // Formatação de Moeda
+        const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+
+        // --- NAVEGAÇÃO ---
         function mudarAba(abaId) {
             document.querySelectorAll('.aba').forEach(el => el.classList.add('hidden'));
             document.getElementById(abaId).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-gray-800'));
+            document.getElementById(`btn-${abaId}`).classList.add('bg-gray-800');
+
+            if (abaId === 'dashboard') carregarDashboard();
             if (abaId === 'clientes') carregarClientes();
+            if (abaId === 'servicos') carregarServicos();
+            if (abaId === 'pendencias') carregarPendencias();
         }
 
-        // Exemplo de como puxar dados do Supabase usando JS puro
+        // --- UTILIDADE: HISTÓRICO ---
+        async function registrarHistorico(serviceId, acao, descricao) {
+            const user = (await sb.auth.getSession()).data.session.user;
+            await sb.from('service_history').insert([{ service_id: serviceId, acao, descricao, user_id: user.id }]);
+        }
+
+        // --- DASHBOARD ---
+        async function carregarDashboard() {
+            // Puxa todos os serviços e pagamentos para fazer o cálculo
+            const { data: servicos } = await sb.from('services').select('valor_total, status_servico');
+            const { data: pagamentos } = await sb.from('payments').select('valor');
+
+            let ativos = 0, valorTotalContratado = 0, totalRecebido = 0;
+
+            if (servicos) {
+                servicos.forEach(s => {
+                    if (s.status_servico === 'SOLICITADO' || s.status_servico === 'EM_ANDAMENTO') ativos++;
+                    valorTotalContratado += parseFloat(s.valor_total || 0);
+                });
+            }
+            if (pagamentos) {
+                pagamentos.forEach(p => totalRecebido += parseFloat(p.valor || 0));
+            }
+
+            let aReceber = valorTotalContratado - totalRecebido;
+            if (aReceber < 0) aReceber = 0;
+
+            document.getElementById('dashTotalServicos').textContent = ativos;
+            document.getElementById('dashRecebido').textContent = formatarMoeda(totalRecebido);
+            document.getElementById('dashAReceber').textContent = formatarMoeda(aReceber);
+        }
+
+        // --- CLIENTES ---
         async function carregarClientes() {
-            const { data: clientes, error } = await supabase.from('clients').select('*');
+            const { data: clientes } = await sb.from('clients').select('*').order('nome', { ascending: true });
+            clientesCache = clientes || [];
             const tbody = document.getElementById('listaClientes');
             tbody.innerHTML = '';
             
-            if (clientes) {
-                clientes.forEach(cliente => {
-                    tbody.innerHTML += `
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-3">${cliente.nome}</td>
-                            <td class="p-3">${cliente.telefone || '-'}</td>
-                            <td class="p-3 text-blue-600 cursor-pointer hover:underline">Editar</td>
-                        </tr>
-                    `;
-                });
+            if (clientesCache.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Nenhum cliente cadastrado.</td></tr>';
+            
+            clientesCache.forEach(cli => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4">${cli.nome}</td>
+                        <td class="p-4">${cli.telefone || '-'}</td>
+                        <td class="p-4">${cli.cpf_cnpj || '-'}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="editarCliente('${cli.id}')" class="text-blue-600 hover:underline"><i class="fas fa-edit"></i> Editar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function abrirModalCliente() {
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+            document.getElementById('tituloModalCliente').textContent = 'Novo Cliente';
+            document.getElementById('modalCliente').classList.remove('hidden');
+        }
+
+        function editarCliente(id) {
+            const cli = clientesCache.find(c => c.id === id);
+            if(cli) {
+                document.getElementById('clienteId').value = cli.id;
+                document.getElementById('cliNome').value = cli.nome;
+                document.getElementById('cliTelefone').value = cli.telefone || '';
+                document.getElementById('cliCpf').value = cli.cpf_cnpj || '';
+                document.getElementById('cliObs').value = cli.observacoes || '';
+                document.getElementById('tituloModalCliente').textContent = 'Editar Cliente';
+                document.getElementById('modalCliente').classList.remove('hidden');
             }
+        }
+
+        document.getElementById('formCliente').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('clienteId').value;
+            const dados = {
+                nome: document.getElementById('cliNome').value,
+                telefone: document.getElementById('cliTelefone').value,
+                cpf_cnpj: document.getElementById('cliCpf').value,
+                observacoes: document.getElementById('cliObs').value
+            };
+
+            if (id) await sb.from('clients').update(dados).eq('id', id);
+            else await sb.from('clients').insert([dados]);
+            
+            fecharModal('modalCliente');
+            carregarClientes();
+        });
+
+        // --- SERVIÇOS ---
+        async function carregarServicos() {
+            // Trazemos os serviços e incluímos o nome do cliente ligado a ele
+            const { data: servicos } = await sb.from('services').select('*, clients(nome)').order('created_at', { ascending: false });
+            const tbody = document.getElementById('listaServicos');
+            tbody.innerHTML = '';
+            
+            if (!servicos || servicos.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">Nenhum serviço cadastrado.</td></tr>';
+            
+            servicos.forEach(srv => {
+                let corStatus = srv.status_servico === 'ENTREGUE' ? 'text-green-600' : 'text-blue-600';
+                let corPgto = srv.status_pagamento === 'PAGO' ? 'bg-green-100 text-green-800' : (srv.status_pagamento === 'PARCIAL' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4">
+                            <div class="font-semibold text-gray-800">${srv.clients?.nome || 'Desconhecido'}</div>
+                            <div class="text-sm text-gray-500">${srv.descricao}</div>
+                        </td>
+                        <td class="p-4 font-semibold ${corStatus}">${srv.status_servico}</td>
+                        <td class="p-4 font-bold">${formatarMoeda(srv.valor_total)}</td>
+                        <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${corPgto}">${srv.status_pagamento}</span></td>
+                        <td class="p-4 text-right space-x-3">
+                            <button onclick="abrirModalPagamento('${srv.id}', ${srv.valor_total})" class="text-green-600 hover:underline" title="Registrar Pagamento"><i class="fas fa-hand-holding-usd"></i></button>
+                            <a href="historico.html?id=${srv.id}" class="text-gray-500 hover:underline" title="Histórico"><i class="fas fa-history"></i></a>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function preencherDropdownClientes() {
+            const select = document.getElementById('srvCliente');
+            select.innerHTML = '<option value="">Selecione o cliente...</option>';
+            const { data: clientes } = await sb.from('clients').select('id, nome').order('nome');
+            clientes?.forEach(c => select.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
+        }
+
+        async function abrirModalServico() {
+            document.getElementById('formServico').reset();
+            document.getElementById('servicoId').value = '';
+            await preencherDropdownClientes();
+            document.getElementById('modalServico').classList.remove('hidden');
+        }
+
+        document.getElementById('formServico').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const dados = {
+                client_id: document.getElementById('srvCliente').value,
+                descricao: document.getElementById('srvDescricao').value,
+                valor_total: document.getElementById('srvValor').value,
+                status_servico: document.getElementById('srvStatus').value
+            };
+
+            const { data, error } = await sb.from('services').insert([dados]).select();
+            if (data && data.length > 0) {
+                await registrarHistorico(data[0].id, 'Serviço Criado', `Valor: ${formatarMoeda(dados.valor_total)} - Status: ${dados.status_servico}`);
+            }
+            
+            fecharModal('modalServico');
+            carregarServicos();
+        });
+
+        // --- PAGAMENTOS ---
+        function abrirModalPagamento(idServico, valorTotal) {
+            document.getElementById('formPagamento').reset();
+            document.getElementById('pagServicoId').value = idServico;
+            document.getElementById('pagData').valueAsDate = new Date(); // Data de hoje por padrão
+            document.getElementById('modalPagamento').classList.remove('hidden');
+        }
+
+        document.getElementById('formPagamento').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const serviceId = document.getElementById('pagServicoId').value;
+            const valorRecebido = parseFloat(document.getElementById('pagValor').value);
+            
+            // 1. Registra o pagamento
+            const user = (await sb.auth.getSession()).data.session.user;
+            await sb.from('payments').insert([{
+                service_id: serviceId,
+                valor: valorRecebido,
+                data_pagamento: document.getElementById('pagData').value,
+                forma_pagamento: document.getElementById('pagForma').value,
+                created_by: user.id
+            }]);
+
+            await registrarHistorico(serviceId, 'Pagamento Recebido', `Valor de ${formatarMoeda(valorRecebido)} via ${document.getElementById('pagForma').value}`);
+
+            // 2. Calcula se o serviço está PAGO ou PARCIAL
+            const { data: servico } = await sb.from('services').select('valor_total').eq('id', serviceId).single();
+            const { data: todosPagamentos } = await sb.from('payments').select('valor').eq('service_id', serviceId);
+            
+            let totalPago = 0;
+            todosPagamentos.forEach(p => totalPago += parseFloat(p.valor));
+
+            let novoStatusPgto = 'PENDENTE';
+            if (totalPago > 0 && totalPago < servico.valor_total) novoStatusPgto = 'PARCIAL';
+            if (totalPago >= servico.valor_total) novoStatusPgto = 'PAGO';
+
+            await sb.from('services').update({ status_pagamento: novoStatusPgto }).eq('id', serviceId);
+
+            fecharModal('modalPagamento');
+            carregarServicos(); // Atualiza a tela de serviços
+            if(!document.getElementById('pendencias').classList.contains('hidden')) carregarPendencias(); // Atualiza pendencias se estiver aberta
+        });
+
+        // --- PENDÊNCIAS ---
+        async function carregarPendencias() {
+            // Traz apenas serviços que não estão PAGOS
+            const { data: servicos } = await sb.from('services')
+                .select('*, clients(nome), payments(valor)')
+                .neq('status_pagamento', 'PAGO')
+                .order('created_at', { ascending: false });
+                
+            const tbody = document.getElementById('listaPendencias');
+            tbody.innerHTML = '';
+            
+            if (!servicos || servicos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-green-600 font-bold">Nenhuma pendência encontrada!</td></tr>';
+                return;
+            }
+            
+            servicos.forEach(srv => {
+                let pagoAteAgora = 0;
+                srv.payments?.forEach(p => pagoAteAgora += parseFloat(p.valor));
+                let restante = parseFloat(srv.valor_total) - pagoAteAgora;
+
+                let corPgto = srv.status_pagamento === 'PARCIAL' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4">
+                            <div class="font-semibold text-gray-800">${srv.clients?.nome || 'Desconhecido'}</div>
+                            <div class="text-sm text-gray-500">${srv.descricao}</div>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-bold">${formatarMoeda(srv.valor_total)}</div>
+                            <div class="text-xs text-red-600 mt-1">Falta: ${formatarMoeda(restante)}</div>
+                        </td>
+                        <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${corPgto}">${srv.status_pagamento}</span></td>
+                        <td class="p-4 text-right">
+                            <button onclick="abrirModalPagamento('${srv.id}', ${srv.valor_total})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm rounded shadow"><i class="fas fa-dollar-sign mr-1"></i> Pagar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Funções Comuns
+        function fecharModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
         }
     </script>
 </body>
