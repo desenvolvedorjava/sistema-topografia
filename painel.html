@@ -173,7 +173,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Valor Total (R$) *</label>
-                        <input type="number" step="0.01" id="srvValor" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="srvValor" required placeholder="Ex: 1500,50 ou 1500.50" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Status do Serviço</label>
@@ -204,7 +204,7 @@
                 <input type="hidden" id="pagServicoId">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Valor Recebido (R$) *</label>
-                    <input type="number" step="0.01" id="pagValor" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="pagValor" required placeholder="Ex: 500,00 ou 500.00" class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Data do Pagamento *</label>
@@ -235,11 +235,19 @@
         // Verifica segurança ao carregar
         sb.auth.getSession().then(({ data }) => {
             if (!data.session) window.location.href = 'index.html';
-            else carregarDashboard(); // Carrega dados ao iniciar
+            else carregarDashboard();
         });
 
         // Formatação de Moeda
         const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+
+        // Converte texto com vírgula para número decimal padrão (Ex: "1.500,50" ou "1500,50" -> 1500.50)
+        function limparValorMonetario(texto) {
+            if (!texto) return 0;
+            // Remove pontos de milhar e troca vírgula decimal por ponto
+limparStr = String(texto).replace(/\./g, '').replace(',', '.');
+            return parseFloat(limparStr) || 0;
+        }
 
         // --- NAVEGAÇÃO ---
         function mudarAba(abaId) {
@@ -263,7 +271,6 @@
 
         // --- DASHBOARD ---
         async function carregarDashboard() {
-            // Puxa todos os serviços e pagamentos para fazer o cálculo
             const { data: servicos } = await sb.from('services').select('valor_total, status_servico');
             const { data: pagamentos } = await sb.from('payments').select('valor');
 
@@ -349,7 +356,6 @@
 
         // --- SERVIÇOS ---
         async function carregarServicos() {
-            // Trazemos os serviços e incluímos o nome do cliente ligado a ele
             const { data: servicos } = await sb.from('services').select('*, clients(nome)').order('created_at', { ascending: false });
             const tbody = document.getElementById('listaServicos');
             tbody.innerHTML = '';
@@ -370,7 +376,7 @@
                         <td class="p-4 font-bold">${formatarMoeda(srv.valor_total)}</td>
                         <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${corPgto}">${srv.status_pagamento}</span></td>
                         <td class="p-4 text-right space-x-3">
-                            <button onclick="abrirModalPagamento('${srv.id}', ${srv.valor_total})" class="text-green-600 hover:underline" title="Registrar Pagamento"><i class="fas fa-hand-holding-usd"></i></button>
+                            <button onclick="abrirModalPagamento('${srv.id}')" class="text-green-600 hover:underline" title="Registrar Pagamento"><i class="fas fa-hand-holding-usd"></i></button>
                             <a href="historico.html?id=${srv.id}" class="text-gray-500 hover:underline" title="Histórico"><i class="fas fa-history"></i></a>
                         </td>
                     </tr>
@@ -394,10 +400,14 @@
 
         document.getElementById('formServico').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // Converte o valor digitado (aceitando vírgula e ponto) para formato decimal correto
+            const valorTratado = limparValorMonetario(document.getElementById('srvValor').value);
+
             const dados = {
                 client_id: document.getElementById('srvCliente').value,
                 descricao: document.getElementById('srvDescricao').value,
-                valor_total: document.getElementById('srvValor').value,
+                valor_total: valorTratado,
                 status_servico: document.getElementById('srvStatus').value
             };
 
@@ -411,19 +421,20 @@
         });
 
         // --- PAGAMENTOS ---
-        function abrirModalPagamento(idServico, valorTotal) {
+        function abrirModalPagamento(idServico) {
             document.getElementById('formPagamento').reset();
             document.getElementById('pagServicoId').value = idServico;
-            document.getElementById('pagData').valueAsDate = new Date(); // Data de hoje por padrão
+            document.getElementById('pagData').valueAsDate = new Date();
             document.getElementById('modalPagamento').classList.remove('hidden');
         }
 
         document.getElementById('formPagamento').addEventListener('submit', async (e) => {
             e.preventDefault();
             const serviceId = document.getElementById('pagServicoId').value;
-            const valorRecebido = parseFloat(document.getElementById('pagValor').value);
             
-            // 1. Registra o pagamento
+            // Converte o valor recebido tratando vírgulas e pontos corretamente
+            const valorRecebido = limparValorMonetario(document.getElementById('pagValor').value);
+            
             const user = (await sb.auth.getSession()).data.session.user;
             await sb.from('payments').insert([{
                 service_id: serviceId,
@@ -435,7 +446,6 @@
 
             await registrarHistorico(serviceId, 'Pagamento Recebido', `Valor de ${formatarMoeda(valorRecebido)} via ${document.getElementById('pagForma').value}`);
 
-            // 2. Calcula se o serviço está PAGO ou PARCIAL
             const { data: servico } = await sb.from('services').select('valor_total').eq('id', serviceId).single();
             const { data: todosPagamentos } = await sb.from('payments').select('valor').eq('service_id', serviceId);
             
@@ -449,13 +459,12 @@
             await sb.from('services').update({ status_pagamento: novoStatusPgto }).eq('id', serviceId);
 
             fecharModal('modalPagamento');
-            carregarServicos(); // Atualiza a tela de serviços
-            if(!document.getElementById('pendencias').classList.contains('hidden')) carregarPendencias(); // Atualiza pendencias se estiver aberta
+            carregarServicos();
+            if(!document.getElementById('pendencias').classList.contains('hidden')) carregarPendencias();
         });
 
         // --- PENDÊNCIAS ---
         async function carregarPendencias() {
-            // Traz apenas serviços que não estão PAGOS
             const { data: servicos } = await sb.from('services')
                 .select('*, clients(nome), payments(valor)')
                 .neq('status_pagamento', 'PAGO')
@@ -488,14 +497,13 @@
                         </td>
                         <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${corPgto}">${srv.status_pagamento}</span></td>
                         <td class="p-4 text-right">
-                            <button onclick="abrirModalPagamento('${srv.id}', ${srv.valor_total})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm rounded shadow"><i class="fas fa-dollar-sign mr-1"></i> Pagar</button>
+                            <button onclick="abrirModalPagamento('${srv.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm rounded shadow"><i class="fas fa-dollar-sign mr-1"></i> Pagar</button>
                         </td>
                     </tr>
                 `;
             });
         }
 
-        // Funções Comuns
         function fecharModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
         }
